@@ -179,12 +179,12 @@ mem_init(void)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
 	boot_map_region(
-			kern_pgdir,
-			UPAGES,
-			pages_size,
-			PADDR(pages),
-			PTE_U | PTE_P
-			);
+		kern_pgdir,
+		UPAGES,
+		pages_size,
+		PADDR(pages),
+		PTE_U | PTE_P
+	);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -198,12 +198,12 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 	boot_map_region(
-			kern_pgdir,
-			KSTACKTOP - KSTKSIZE,
-			KSTKSIZE,
-			PADDR(bootstack),
-			PTE_W | PTE_P
-			);
+		kern_pgdir,
+		KSTACKTOP - KSTKSIZE,
+		KSTKSIZE,
+		PADDR(bootstack),
+		PTE_W | PTE_P
+	);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -214,12 +214,12 @@ mem_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
 	boot_map_region(
-			kern_pgdir,
-			KERNBASE,
-			ROUNDUP(0xFFFFFFFF - KERNBASE, PGSIZE),
-			0,
-			PTE_W | PTE_P
-			);
+		kern_pgdir,
+		KERNBASE,
+		ROUNDUP(0xFFFFFFFF - KERNBASE, PGSIZE),
+		0,
+		PTE_W | PTE_P
+	);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -282,17 +282,19 @@ page_init(void)
 
 	// 1) i starts from 1, not 0
 	for (i = 1; i < npages; i++) {
-		if (i < npages_basemem) {
+		if (
+			i < npages_basemem ||
+			!(
+				(PGNUM(IOPHYSMEM) <= i && i < PGNUM(EXTPHYSMEM)) ||
+				(PGNUM(EXTPHYSMEM) <= i && i < PGNUM(PADDR(boot_alloc(0))))
+			)
+		) {
 			pages[i].pp_ref = 0;
 			pages[i].pp_link = page_free_list;	
 			page_free_list = &pages[i];
-		} else if ((PGNUM(IOPHYSMEM) <= i && i < PGNUM(EXTPHYSMEM)) || (PGNUM(EXTPHYSMEM) <= i && i < PGNUM(PADDR(boot_alloc(0))))) {
+		} else {
 			pages[i].pp_ref = 1;
 			pages[i].pp_link = NULL;
-		} else {
-			pages[i].pp_ref = 0;
-			pages[i].pp_link = page_free_list;	
-			page_free_list = &pages[i];
 		}
 	}
 }
